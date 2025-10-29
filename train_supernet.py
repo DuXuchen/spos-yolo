@@ -8,7 +8,7 @@ import yaml
 import numpy as np
 import torch
 
-import utils
+from utils import set_seed, AverageMeter, random_choice, time_record
 from models.model import SinglePath_OneShot
 import val as validate  # for end-of-epoch mAP
 from utils.dataloaders import create_dataloader
@@ -56,7 +56,7 @@ log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
 logging.info(args)
-utils.set_seed(args.seed)
+set_seed(args.seed)
 
 
 def train(args, epoch, train_loader, model, compute_loss, optimizer):
