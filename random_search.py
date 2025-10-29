@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-import utils
+import util
 from models.model import SinglePath_OneShot
 from utils.dataloaders import create_dataloader
 from utils.general import check_dataset, check_img_size, colorstr, non_max_suppression, xywh2xyxy, scale_boxes
@@ -46,7 +46,7 @@ log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
 logging.info(args)
-utils.set_seed(args.seed)
+util.set_seed(args.seed)
 
 
 def evaluate_single_path_detection(args, val_loader, model, compute_loss, choice):
@@ -59,7 +59,7 @@ def evaluate_single_path_detection(args, val_loader, model, compute_loss, choice
     iouv = torch.linspace(0.5, 0.95, 10, device=device)
     niou = iouv.numel()
     stats = []  # (correct, conf, pred_cls, target_cls)
-    loss_meter = utils.AverageMeter()
+    loss_meter = util.AverageMeter()
 
     with torch.no_grad():
         for batch_i, (imgs, targets, paths, shapes) in enumerate(val_loader):
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     best_map50 = -1.0
     best_choice = None
     for num in range(args.search_num):
-        choice = utils.random_choice(args.num_choices, args.layers)
+        choice = util.random_choice(args.num_choices, args.layers)
         stats = evaluate_single_path_detection(args, val_loader, model, compute_loss, choice)
         map50 = stats['mAP@.5']
         map095 = stats['mAP@.5:.95']
@@ -184,4 +184,4 @@ if __name__ == '__main__':
             best_choice = choice
 
     logging.info('Best mAP@.5: %.4f Best_choice: %s' % (best_map50, best_choice))
-    utils.time_record(start)
+    util.time_record(start)

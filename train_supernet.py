@@ -8,7 +8,7 @@ import yaml
 import numpy as np
 import torch
 
-from utils import set_seed, AverageMeter, random_choice, time_record
+import util
 from models.model import SinglePath_OneShot
 import val as validate  # for end-of-epoch mAP
 from utils.dataloaders import create_dataloader
@@ -56,7 +56,7 @@ log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
 logging.info(args)
-set_seed(args.seed)
+util.set_seed(args.seed)
 
 
 def train(args, epoch, train_loader, model, compute_loss, optimizer):
@@ -75,10 +75,10 @@ def train(args, epoch, train_loader, model, compute_loss, optimizer):
     """
     model.train()
     lr = optimizer.param_groups[0]["lr"]
-    total_loss_meter = utils.AverageMeter()
-    box_loss_meter = utils.AverageMeter()
-    obj_loss_meter = utils.AverageMeter()
-    cls_loss_meter = utils.AverageMeter()
+    total_loss_meter = util.AverageMeter()
+    box_loss_meter = util.AverageMeter()
+    obj_loss_meter = util.AverageMeter()
+    cls_loss_meter = util.AverageMeter()
 
     steps_per_epoch = len(train_loader)
     for step, (inputs, targets, paths, shapes) in enumerate(train_loader):
@@ -87,7 +87,7 @@ def train(args, epoch, train_loader, model, compute_loss, optimizer):
 
         optimizer.zero_grad()
         # sample a random architecture path for this batch
-        choice = utils.random_choice(args.num_choices, args.layers)
+        choice = util.random_choice(args.num_choices, args.layers)
         outputs = model(inputs, choice)
 
         # compute detection losses (loss_items: [box, obj, cls])
@@ -292,7 +292,7 @@ def main():
         print('\n')
 
     # Record Time
-    utils.time_record(start)
+    util.time_record(start)
 
 
 if __name__ == '__main__':

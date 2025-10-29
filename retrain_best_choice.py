@@ -11,7 +11,7 @@ import torchvision
 from thop import profile
 from torchvision import datasets
 
-import utils
+import util
 from models.model import SinglePath_Network
 from utils.dataloaders import create_dataloader
 from utils.general import check_dataset, check_img_size, colorstr
@@ -43,7 +43,7 @@ parser.add_argument('--cutout', action='store_true', help='use cutout')
 parser.add_argument('--cutout_length', type=int, default=16, help='cutout length')
 parser.add_argument('--auto_aug', action='store_true', default=False, help='use auto augmentation')
 parser.add_argument('--resize', action='store_true', default=False, help='use resize')
-parser.add_argument('--data', type=str, default='data/coco128.yaml', help='dataset yaml path')
+parser.add_argument('--data', type=str, default='data/VisDrone.yaml', help='dataset yaml path')
 parser.add_argument('--imgsz', type=int, default=640, help='inference image size')
 parser.add_argument('--cache', type=str, default='', help='cache images: "ram", "disk", or ""')
 parser.add_argument('--rect', action='store_true', help='rectangular training')
@@ -55,17 +55,17 @@ log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
 logging.info(args)
-utils.set_seed(args.seed)
+util.set_seed(args.seed)
 
 
 def train(args, epoch, train_loader, model, compute_loss, optimizer):
     """Detection training loop for one epoch using ComputeLoss."""
     model.train()
     lr = optimizer.param_groups[0]["lr"]
-    total_loss_meter = utils.AverageMeter()
-    box_loss_meter = utils.AverageMeter()
-    obj_loss_meter = utils.AverageMeter()
-    cls_loss_meter = utils.AverageMeter()
+    total_loss_meter = util.AverageMeter()
+    box_loss_meter = util.AverageMeter()
+    obj_loss_meter = util.AverageMeter()
+    cls_loss_meter = util.AverageMeter()
 
     steps_per_epoch = len(train_loader)
     for step, (imgs, targets, paths, shapes) in enumerate(train_loader):
@@ -239,7 +239,7 @@ def main():
         print('\n')
 
     # Record Time
-    utils.time_record(start)
+    util.time_record(start)
 
 
 if __name__ == '__main__':
