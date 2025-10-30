@@ -557,29 +557,33 @@ def check_dataset(data, autodownload=True):
 
     # Parse yaml
     train, val, test, s = (data.get(x) for x in ("train", "val", "test", "download"))
-    if val:
-        val = [Path(x).resolve() for x in (val if isinstance(val, list) else [val])]  # val path
-        if not all(x.exists() for x in val):
-            LOGGER.info("\nDataset not found ⚠️, missing paths %s" % [str(x) for x in val if not x.exists()])
-            if not s or not autodownload:
-                raise Exception("Dataset not found ❌")
-            t = time.time()
-            if s.startswith("http") and s.endswith(".zip"):  # URL
-                f = Path(s).name  # filename
-                LOGGER.info(f"Downloading {s} to {f}...")
-                torch.hub.download_url_to_file(s, f)
-                Path(DATASETS_DIR).mkdir(parents=True, exist_ok=True)  # create root
-                unzip_file(f, path=DATASETS_DIR)  # unzip
-                Path(f).unlink()  # remove zip
-                r = None  # success
-            elif s.startswith("bash "):  # bash script
-                LOGGER.info(f"Running {s} ...")
-                r = subprocess.run(s, shell=True)
-            else:  # python script
-                r = exec(s, {"yaml": data})  # return None
-            dt = f"({round(time.time() - t, 1)}s)"
-            s = f"success ✅ {dt}, saved to {colorstr('bold', DATASETS_DIR)}" if r in (0, None) else f"failure {dt} ❌"
-            LOGGER.info(f"Dataset download {s}")
+    # Normalize train/val to lists of resolved Paths (if present)
+    train_paths = [Path(x).resolve() for x in (train if isinstance(train, list) else [train])] if train else []
+    val_paths = [Path(x).resolve() for x in (val if isinstance(val, list) else [val])] if val else []
+
+    # If any expected train/val files are missing, attempt autodownload (if enabled)
+    missing = [str(x) for x in (train_paths + val_paths) if not x.exists()]
+    if missing:
+        LOGGER.info("\nDataset not found ⚠️, missing paths %s" % missing)
+        if not s or not autodownload:
+            raise Exception("Dataset not found ❌")
+        t = time.time()
+        if s.startswith("http") and s.endswith(".zip"):  # URL
+            f = Path(s).name  # filename
+            LOGGER.info(f"Downloading {s} to {f}...")
+            torch.hub.download_url_to_file(s, f)
+            Path(DATASETS_DIR).mkdir(parents=True, exist_ok=True)  # create root
+            unzip_file(f, path=DATASETS_DIR)  # unzip
+            Path(f).unlink()  # remove zip
+            r = None  # success
+        elif s.startswith("bash "):  # bash script
+            LOGGER.info(f"Running {s} ...")
+            r = subprocess.run(s, shell=True)
+        else:  # python script
+            r = exec(s, {"yaml": data})  # return None
+        dt = f"({round(time.time() - t, 1)}s)"
+        s = f"success ✅ {dt}, saved to {colorstr('bold', DATASETS_DIR)}" if r in (0, None) else f"failure {dt} ❌"
+        LOGGER.info(f"Dataset download {s}")
     check_font("Arial.ttf" if is_ascii(data["names"]) else "Arial.Unicode.ttf", progress=True)  # download fonts
     return data  # dictionary
 
@@ -689,12 +693,30 @@ def download(url, dir=".", unzip=True, delete=True, curl=False, threads=1, retry
     dir.mkdir(parents=True, exist_ok=True)  # make directory
     if threads > 1:
         pool = ThreadPool(threads)
-        pool.imap(lambda x: download_one(*x), zip(url, repeat(dir)))  # multithreaded
+
+        for u in [url] if isinstance(url, (str, Path)) else url:
+            folder_name = Path(u).stem  # 获取文件名（不带扩展名）
+            extracted_folder = dir / folder_name  # 假设解压后的文件夹名称与文件名相同
+            if extracted_folder.exists() and extracted_folder.is_dir():
+                LOGGER.info(f"Folder {extracted_folder} already exists, skipping download for {u}.")
+            else:
+                pool.apply_async(download_one, (u, dir))  # 仅在文件夹不存在时下载
+
+        # pool.imap(lambda x: download_one(*x), zip(url, repeat(dir)))  # multithreaded
+
         pool.close()
         pool.join()
     else:
         for u in [url] if isinstance(url, (str, Path)) else url:
-            download_one(u, dir)
+            folder_name = Path(u).stem  # 获取文件名（不带扩展名）
+            extracted_folder = dir / folder_name  # 假设解压后的文件夹名称与文件名相同
+            if extracted_folder.exists() and extracted_folder.is_dir():
+                LOGGER.info(f"Folder {extracted_folder} already exists, skipping download for {u}.")
+            else:
+                download_one(u, dir)
+
+        # for u in [url] if isinstance(url, (str, Path)) else url:
+        #     download_one(u, dir)
 
 
 def make_divisible(x, divisor):
